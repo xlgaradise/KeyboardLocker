@@ -5,14 +5,13 @@ import pyHook
 import win32api
 import Tkinter
 import tkFont
-from time import sleep
 import threading
 
 info = None #信息标签
 isClosed = False #标签是否被关闭
 
-class leftLabel(object):
-    'create leftrmation label'
+class InfoLabel(object):
+    '创建信息标签类'
     
     def __init__(self,location):
         self.__root = Tkinter.Tk()
@@ -40,11 +39,11 @@ class leftLabel(object):
         self.close()
         
     def show(self):
-        ''
+        '显示窗口'
         self.__root.mainloop()
         
     def close(self):
-        ''
+        '关闭窗口'
         self.__root.destroy()
 
 
@@ -82,11 +81,9 @@ class KeyboardHook(object):
         return False
     
     def startListening(self):
-        print('start listening')
         pythoncom.PumpMessages(10000)
         
     def closeListening(self):
-        print('stop listening')
         global info
         if not isClosed:
             info.close()
@@ -109,9 +106,9 @@ class MyThread(threading.Thread):
         
 def main():
     global info
-    info = leftLabel("info")
-    leftThread = MyThread(info.show,(),name="infoThread")
-    leftThread.start()
+    info = InfoLabel("info")
+    infoThread = MyThread(info.show,(),name="infoThread")
+    infoThread.start()
 
     hook = KeyboardHook()
     hook.startListening()
