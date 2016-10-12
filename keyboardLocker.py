@@ -8,8 +8,8 @@ import tkFont
 from time import sleep
 import threading
 
-left = None
-isClosed = False
+info = None #信息标签
+isClosed = False #标签是否被关闭
 
 class leftLabel(object):
     'create leftrmation label'
@@ -87,10 +87,9 @@ class KeyboardHook(object):
         
     def closeListening(self):
         print('stop listening')
-        
-        global left
+        global info
         if not isClosed:
-            left.close()
+            info.close()
         win32api.PostQuitMessage() #关闭监听
     
 class MyThread(threading.Thread):
@@ -109,9 +108,9 @@ class MyThread(threading.Thread):
         
         
 def main():
-    global left
-    left = leftLabel("left")
-    leftThread = MyThread(left.show,(),name="leftThread")
+    global info
+    info = leftLabel("info")
+    leftThread = MyThread(info.show,(),name="infoThread")
     leftThread.start()
 
     hook = KeyboardHook()
