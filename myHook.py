@@ -1,20 +1,24 @@
 #coding=utf-8
 #Python2.7解释器解析
-import pythoncom 
+import pythoncom
 import pyHook
 import win32api
 import Tkinter
 import tkFont
+from time import sleep
 import threading
 
-note = None
+leftInfo = None
+leftClose = False
 
 class InfoLabel(object):
     'create information label'
-    def __init__(self,location):
+    screenHeight = 0
+    screenWidth = 0
+    def __init__(self):
         self.__root = Tkinter.Tk()
+        self.__lable = None
         self.__initWidgets()
-        self.__location = location #标签位置
         
     def __initWidgets(self):
         'initialize widgets'
@@ -22,35 +26,33 @@ class InfoLabel(object):
         self.__root.attributes("-alpha", 0.5)#窗口透明度50%
         self.__root.attributes("-topmost",True)#窗口置于最顶层
         
-        #获取屏幕高度 height1 = win32api.GetSystemMetrics(win32con.SM_CYFULLSCREEN)  
-        height = self.__root.winfo_screenheight()
-        if self.__location == 'left':
-            self.__root.geometry("260x40+0+"+str(height-90)) #设置窗体大小及坐标
-        elif self.__location == 'middle':
-            width = self.__root.winfo_screenwidth()
-            self.__root.geometry("260x40+"+str(width/2-20)+"+"+str(height-130))
-        else:
-            return None
-            
         ft = tkFont.Font(family='Arial',size=10,weight=tkFont.BOLD) #设置显示字体格式
+        self.__label = Tkinter.Label(self.__root,fg='red',font=ft,
+                    text="键盘已被锁定,可按Ctrl+Alt+L关闭锁定\n双击本信息可关闭提示")
+        self.__label.pack(fill='both',expand='yes') #label填充方式
         
-        label = Tkinter.Label(self.__root,fg='red',font=ft,
-                        text="键盘已被关闭,可按Ctrl+Alt+L关闭锁定\n双击本信息可关闭提示")
-        label.pack(fill='both',expand='yes') #label填充方式
-        
+        #获取屏幕宽高度 height = win32api.GetSystemMetrics(win32con.SM_CYFULLSCREEN)  
+        InfoLabel.screenHeight = self.__root.winfo_screenheight()
+        InfoLabel.screenWidth = self.__root.winfo_screenwidth()
+        self.__root.geometry("260x40+0+"+str(InfoLabel.screenHeight-90)) #设置窗体大小及坐标
         self.__root.bind("<Double-Button-1>",self.__mouseEvent) #绑定响应方法
         
     def __mouseEvent(self,event):
         '双击窗口让窗口关闭'
-        self.__root.destroy()
-
+        self.__root.withdraw()
+        
+    def changeWidget(self):
+        self.__label.__setitem__('text',"键盘已可使用")
+        self.__root.geometry("150x30+"+str(InfoLabel.screenWidth/2 - 130)+"+"+\
+                                str(InfoLabel.screenHeight - 90))
+        
     def show(self):
-        self.__root.mainloop()
         print('start')
+        self.__root.mainloop()
         
     def close(self):
+        print("stop")
         self.__root.destroy()
-
 
 
 class KeyboardHook(object):
@@ -87,30 +89,43 @@ class KeyboardHook(object):
         return False
     
     def startListening(self):
+        print('start listening')
         pythoncom.PumpMessages(10000)
         
     def closeListening(self):
+        print('stop listening')
+        if not leftClose:
+            global leftInfo
+            leftInfo.close()
         win32api.PostQuitMessage() #关闭监听
     
     
 class MyThread(threading.Thread):
     ''
-    def __init__(self):
-        pass
-     
+    def __init__(self,func,args,name=''):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.func = func
+        self.args = args
+        
+    def getResult(self):
+        return self.res
+        
     def run(self):
-        pass
-    
+        self.res = self.func(*self.args)
+        
+        
 def main():
-
-    # global note
-    # note = InfoLabel()
-    # note.show()
+    global leftInfo
+    leftInfo = InfoLabel()
+    infoThread = MyThread(leftInfo.show,(),"infoThread")
+    infoThread.start()
     
     hook = KeyboardHook()
     hook.startListening()
-    
-    
+
+
+    print('all Done')
     
 if __name__ == '__main__':
     main()
