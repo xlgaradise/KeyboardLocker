@@ -8,17 +8,19 @@ import tkFont
 from time import sleep
 import threading
 
-leftInfo = None
-leftClose = False
+left = None
+middle = None
+middleEvent = threading.Event()
+isClosed = False
 
-class InfoLabel(object):
-    'create information label'
-    screenHeight = 0
-    screenWidth = 0
-    def __init__(self):
+class leftLabel(object):
+    'create leftrmation label'
+    
+    def __init__(self,location):
         self.__root = Tkinter.Tk()
-        self.__lable = None
+        self.__location = location
         self.__initWidgets()
+        
         
     def __initWidgets(self):
         'initialize widgets'
@@ -26,37 +28,50 @@ class InfoLabel(object):
         self.__root.attributes("-alpha", 0.5)#窗口透明度50%
         self.__root.attributes("-topmost",True)#窗口置于最顶层
         
-        ft = tkFont.Font(family='Arial',size=10,weight=tkFont.BOLD) #设置显示字体格式
-        self.__label = Tkinter.Label(self.__root,fg='red',font=ft,
-                    text="键盘已被锁定,可按Ctrl+Alt+L关闭锁定\n双击本信息可关闭提示")
-        self.__label.pack(fill='both',expand='yes') #label填充方式
-        
         #获取屏幕宽高度 height = win32api.GetSystemMetrics(win32con.SM_CYFULLSCREEN)  
-        InfoLabel.screenHeight = self.__root.winfo_screenheight()
-        InfoLabel.screenWidth = self.__root.winfo_screenwidth()
-        self.__root.geometry("260x40+0+"+str(InfoLabel.screenHeight-90)) #设置窗体大小及坐标
-        self.__root.bind("<Double-Button-1>",self.__mouseEvent) #绑定响应方法
+        screenHeight = self.__root.winfo_screenheight()
+        screenWidth = self.__root.winfo_screenwidth()
+        ft = tkFont.Font(family='Arial',size=10,weight=tkFont.BOLD) #设置显示字体格式
+        
+        if self.__location == "left":
+            self.__label = Tkinter.Label(self.__root,fg='red',font=ft,
+                    text="键盘已被锁定,可按Ctrl+Alt+L关闭锁定\n双击本信息可关闭提示")
+            self.__label.pack(fill='both',expand='yes') #label填充方式
+            self.__root.geometry("260x40+0+"+str(screenHeight-90)) #设置窗体大小及坐标
+            self.__root.bind("<Double-Button-1>",self.__mouseEvent) #绑定响应方法
+        else:
+            self.__label = Tkinter.Label(self.__root,fg='red',font=ft,
+                    text="键盘已可使用")
+            self.__label.pack(fill='both',expand='yes') #label填充方式
+            self.__root.geometry("150x30+"+str(screenWidth/2 - 130)+"+"+\
+                                str(screenHeight - 90))
         
     def __mouseEvent(self,event):
         '双击窗口让窗口关闭'
-        self.__root.withdraw()
-        
-    def changeWidget(self):
-        self.__label.__setitem__('text',"键盘已可使用")
-        self.__root.geometry("150x30+"+str(InfoLabel.screenWidth/2 - 130)+"+"+\
-                                str(InfoLabel.screenHeight - 90))
+        global isClosed
+        isClosed = True
+        self.close()
         
     def show(self):
-        print('start')
+        ''
+        
+        if self.__location == "middle":
+            print("middle wait")
+            middleEvent.wait()
         self.__root.mainloop()
+        print('loop start')
         
     def close(self):
-        print("stop")
+        ''
+        
         self.__root.destroy()
+        global middleEvent
+        middleEvent.set()
+        print("loop stop")
 
 
 class KeyboardHook(object):
-    ''
+    '键盘监听类'
     def __init__(self):
         self.__keyList = []  #按键序列
         self.__index = 0  #最新序列下标
@@ -94,11 +109,11 @@ class KeyboardHook(object):
         
     def closeListening(self):
         print('stop listening')
-        if not leftClose:
-            global leftInfo
-            leftInfo.close()
+        
+        global left,middle,middleEvent
+        if not isClosed:
+            left.close()
         win32api.PostQuitMessage() #关闭监听
-    
     
 class MyThread(threading.Thread):
     ''
@@ -116,14 +131,20 @@ class MyThread(threading.Thread):
         
         
 def main():
-    global leftInfo
-    leftInfo = InfoLabel()
-    infoThread = MyThread(leftInfo.show,(),"infoThread")
-    infoThread.start()
+    global left,middle
+    left = leftLabel("left")
+    leftThread = MyThread(left.show,(),name="leftThread")
+    leftThread.start()
+    
+    
+    
     
     hook = KeyboardHook()
     hook.startListening()
 
+    middle = leftLabel("middle")
+    middleThread = MyThread(middle.show,())
+    middleThread.start()
 
     print('all Done')
     
